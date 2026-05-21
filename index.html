@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文笔训练数据生成器</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&family=JetBrains+Mono:wght@400;500&display=swap');
+
+        :root {
+            --bg: #0e0f13;
+            --bg2: #16171d;
+            --bg3: #1e1f27;
+            --card: #1a1b23;
+            --border: #2a2b35;
+            --fg: #e8e6e3;
+            --fg2: #9b99a1;
+            --accent: #e8a44a;
+            --accent2: #f0c674;
+            --accent-dim: rgba(232,164,74,0.12);
+            --red: #e85d5d;
+            --green: #6bc76b;
+            --radius: 12px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Noto Serif SC', serif;
+            background: var(--bg);
+            color: var(--fg);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* 背景纹理 */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 80% 60% at 20% 10%, rgba(232,164,74,0.06) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 50% at 80% 90%, rgba(232,164,74,0.04) 0%, transparent 60%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 48px 24px 80px;
+        }
+
+        /* 头部 */
+        .header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .header h1 {
+            font-size: 2.4rem;
+            font-weight: 900;
+            letter-spacing: 0.04em;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 50%, var(--accent) 100%);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: shimmer 4s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .header p {
+            color: var(--fg2);
+            font-size: 0.95rem;
+            margin-top: 10px;
+            font-weight: 400;
+        }
+
+        /* 卡片 */
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 28px;
+            margin-bottom: 20px;
+            transition: border-color 0.3s;
+        }
+
+        .card:hover {
+            border-color: rgba(232,164,74,0.3);
+        }
+
+        .card-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-title .num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: var(--bg);
+            font-size: 0.8rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* 文本输入区 */
+        .textarea-wrap {
+            position: relative;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 220px;
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--fg);
+            font-family: 'Noto Serif SC', serif;
+            font-size: 0.92rem;
+            line-height: 1.8;
+            padding: 16px;
+            resize: vertical;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus {
+            border-color: var(--accent);
+        }
+
+        textarea::placeholder {
+            color: var(--fg2);
+            opacity: 0.5;
+        }
+
+        .char-count {
+            position: absolute;
+            bottom: 10px;
+            right: 14px;
+            font-size: 0.75rem;
+            color: var(--fg2);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* 文件上传 */
+        .file-upload {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .file-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 18px;
+            background: var(--bg3);
+            border: 1px dashed var(--border);
+            border-radius: 8px;
+            color: var(--fg2);
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Noto Serif SC', serif;
+        }
+
+        .file-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--accent-dim);
+        }
+
+        .file-btn input { display: none; }
+
+        .file-name {
+            font-size: 0.82rem;
+            color: var(--fg2);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* 参数设置 */
+        .params-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .param-item {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .param-item label {
+            font-size: 0.82rem;
+            color: var(--fg2);
+            font-weight: 600;
+        }
+
+        .param-item input[type="number"],
+        .param-item input[type="text"] {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--fg);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            padding: 8px 12px;
+            outline: none;
+            transition: border-color 0.3s;
+            width: 100%;
+        }
+
+        .param-item input:focus {
+            border-color: var(--accent);
+        }
+
+        .param-hint {
+            font-size: 0.72rem;
+            color: var(--fg2);
+            opacity: 0.6;
+        }
+
+        /* 切换开关 */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0;
+        }
+
+        .toggle-row span {
+            font-size: 0.88rem;
+            color: var(--fg2);
+        }
+
+        .toggle {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            cursor: pointer;
+        }
+
+        .toggle input { display: none; }
+
+        .toggle .slider {
+            position: absolute;
+            inset: 0;
+            background: var(--bg3);
+            border-radius: 12px;
+            transition: 0.3s;
+        }
+
+        .toggle .slider::before {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            left: 3px;
+            top: 3px;
+            background: var(--fg2);
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+
+        .toggle input:checked + .slider {
+            background: var(--accent);
+        }
+
+        .toggle input:checked + .slider::before {
+            transform: translateX(20px);
+            background: var(--bg);
+        }
+
+        /* 按钮 */
+        .btn-row {
+            display: flex;
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 32px;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Noto Serif SC', serif;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            color: var(--bg);
+            flex: 1;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 24px rgba(232,164,74,0.25);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: var(--bg3);
+            color: var(--fg2);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        /* 结果区 */
+        .result-section {
+            display: none;
+        }
+
+        .result-section.show {
+            display: block;
+            animation: fadeUp 0.5s ease;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .stat-box {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px;
+            text-align: center;
+        }
+
+        .stat-box .val {
+            font-size: 1.6rem;
+            font-weight: 900;
+            color: var(--accent);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .stat-box .label {
+            font-size: 0.75rem;
+            color: var(--fg2);
+            margin-top: 4px;
+        }
+
+        /* 预览表格 */
+        .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+        }
+
+        .preview-table th {
+            background: var(--bg3);
+            color: var(--accent);
+            font-weight: 600;
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.78rem;
+            letter-spacing: 0.04em;
+        }
+
+        .preview-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+            color: var(--fg);
+            line-height: 1.6;
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .preview-table tr:hover td {
+            background: var(--accent-dim);
+        }
+
+        .preview-table .col-inst {
+            color: var(--fg2);
+            font-style: italic;
+            width: 100px;
+        }
+
+        .preview-table .col-in {
+            width: 40%;
+        }
+
+        .preview-table .col-out {
+            width: 40%;
+        }
+
+        .preview-note {
+            font-size: 0.78rem;
+            color: var(--fg2);
+            text-align: center;
+            margin-top: 10px;
+            opacity: 0.6;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 32px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: var(--card);
+            border: 1px solid var(--green);
+            color: var(--green);
+            padding: 12px 28px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            z-index: 999;
+            opacity: 0;
+            transition: all 0.4s ease;
+            pointer-events: none;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .toast.error {
+            border-color: var(--red);
+            color: var(--red);
+        }
+
+        /* 响应式 */
+        @media (max-width: 640px) {
+            .container { padding: 24px 16px 60px; }
+            .header h1 { font-size: 1.7rem; }
+            .stats { grid-template-columns: 1fr; }
+            .params-grid { grid-template-columns: 1fr; }
+            .btn-row { flex-direction: column; }
+            .preview-table td { max-width: 150px; }
+        }
+
+        /* 滚动条 */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--fg2); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>文笔训练数据生成器</h1>
+        <p>粘贴小说文本，自动生成 LLaMA-Factory 训练用的 CSV 文件</p>
+    </div>
+
+    <!-- 第1步：输入文本 -->
+    <div class="card">
+        <div class="card-title"><span class="num">1</span> 输入小说文本</div>
+        <div class="textarea-wrap">
+            <textarea id="novelText" placeholder="在这里粘贴你的小说文本...&#10;&#10;工具会自动按句子切割，生成「上文 → 下文」的训练配对。&#10;支持直接粘贴，也可以点击下方按钮上传 .txt 文件。"></textarea>
+            <span class="char-count" id="charCount">0 字符</span>
+        </div>
+        <div class="file-upload">
+            <label class="file-btn">
+                📁 上传 .txt 文件
+                <input type="file" id="fileInput" accept=".txt,.text">
+            </label>
+            <span class="file-name" id="fileName"></span>
+        </div>
+    </div>
+
+    <!-- 第2步：参数设置 -->
+    <div class="card">
+        <div class="card-title"><span class="num">2</span> 参数设置</div>
+        <div class="params-grid">
+            <div class="param-item">
+                <label>上文句数</label>
+                <input type="number" id="inputSentences" value="2" min="1" max="10">
+                <span class="param-hint">连续几句作为「上文」</span>
+            </div>
+            <div class="param-item">
+                <label>下文句数</label>
+                <input type="number" id="outputSentences" value="1" min="1" max="10">
+                <span class="param-hint">连续几句作为「下文」</span>
+            </div>
+            <div class="param-item">
+                <label>最短句子长度</label>
+                <input type="number" id="minSentenceLen" value="5" min="1" max="100">
+                <span class="param-hint">少于此长度的句子跳过</span>
+            </div>
+            <div class="param-item">
+                <label>指令内容</label>
+                <input type="text" id="instruction" value="请用作者的风格续写">
+                <span class="param-hint">模型看到的提示语</span>
+            </div>
+        </div>
+        <div class="toggle-row" style="margin-top: 16px;">
+            <span>随机打乱训练数据顺序</span>
+            <label class="toggle">
+                <input type="checkbox" id="shuffle" checked>
+                <span class="slider"></span>
+            </label>
+        </div>
+    </div>
+
+    <!-- 第3步：生成 -->
+    <div class="card">
+        <div class="card-title"><span class="num">3</span> 生成数据</div>
+        <div class="btn-row">
+            <button class="btn btn-primary" id="generateBtn">生成训练数据</button>
+            <button class="btn btn-secondary" id="downloadBtn" style="display:none;">下载 CSV</button>
+        </div>
+    </div>
+
+    <!-- 结果区 -->
+    <div class="result-section" id="resultSection">
+        <div class="card">
+            <div class="card-title"><span class="num">✓</span> 生成结果</div>
+            <div class="stats">
+                <div class="stat-box">
+                    <div class="val" id="statChars">0</div>
+                    <div class="label">原文总字符</div>
+                </div>
+                <div class="stat-box">
+                    <div class="val" id="statSentences">0</div>
+                    <div class="label">切分句子数</div>
+                </div>
+                <div class="stat-box">
+                    <div class="val" id="statPairs">0</div>
+                    <div class="label">训练数据条数</div>
+                </div>
+            </div>
+            <table class="preview-table">
+                <thead>
+                    <tr>
+                        <th class="col-inst">指令</th>
+                        <th class="col-in">上文 (input)</th>
+                        <th class="col-out">下文 (output)</th>
+                    </tr>
+                </thead>
+                <tbody id="previewBody"></tbody>
+            </table>
+            <div class="preview-note" id="previewNote"></div>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+    const $ = id => document.getElementById(id);
+
+    // 字符计数
+    $('novelText').addEventListener('input', () => {
+        $('charCount').textContent = $('novelText').value.length + ' 字符';
+    });
+
+    // 文件上传
+    $('fileInput').addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        $('fileName').textContent = file.name;
+        const reader = new FileReader();
+        reader.onload = ev => {
+            $('novelText').value = ev.target.result;
+            $('charCount').textContent = ev.target.result.length + ' 字符';
+        };
+        reader.readAsText(file, 'UTF-8');
+    });
+
+    // Toast
+    function showToast(msg, isError = false) {
+        const t = $('toast');
+        t.textContent = msg;
+        t.className = 'toast' + (isError ? ' error' : '');
+        requestAnimationFrame(() => t.classList.add('show'));
+        setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    // 按句子切割
+    function splitSentences(text) {
+        const minLen = parseInt($('minSentenceLen').value) || 5;
+        // 先把省略号、破折号等合并
+        text = text.replace(/\.{3,}/g, '……');
+        text = text.replace(/—{2,}/g, '——');
+        // 按句号、感叹号、问号、省略号、换行分割
+        const parts = text.split(/(?<=[。！？……\n])/);
+        // 清理空白
+        let sentences = parts.map(s => s.trim()).filter(s => s.length > 0);
+        // 合并纯标点片段到上一句（引号、省略号、破折号等被拆散的情况）
+        let merged = [];
+        for (let i = 0; i < sentences.length; i++) {
+            let s = sentences[i];
+            // 如果当前片段全是标点/空白，拼到上一句
+            if (merged.length > 0 && /^[^\u4e00-\u9fff\u3400-\u4dbfa-zA-Z0-9]+$/.test(s)) {
+                merged[merged.length - 1] += s;
+            }
+            // 如果上一句末尾是左引号，当前句拼回去
+            else if (merged.length > 0 && /[""「『]$/.test(merged[merged.length - 1])) {
+                merged[merged.length - 1] += s;
+            }
+            // 如果当前句以右引号开头，拼到上一句
+            else if (merged.length > 0 && /^[""」』]/.test(s)) {
+                merged[merged.length - 1] += s;
+            }
+            else {
+                merged.push(s);
+            }
+        }
+        // 过滤太短的
+        return merged.filter(s => s.length >= minLen);
+    }
+
+    // 生成训练数据
+    function generatePairs(sentences, inputCount, outputCount) {
+        const pairs = [];
+        for (let i = 0; i <= sentences.length - inputCount - outputCount; i++) {
+            const input = sentences.slice(i, i + inputCount).join('');
+            const output = sentences.slice(i + inputCount, i + inputCount + outputCount).join('');
+            if (input.trim() && output.trim()) {
+                pairs.push({ input, output });
+            }
+        }
+        return pairs;
+    }
+
+    // CSV 转义
+    function escapeCSV(str) {
+        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+            return '"' + str.replace(/"/g, '""') + '"';
+        }
+        return str;
+    }
+
+    // 生成按钮
+    $('generateBtn').addEventListener('click', () => {
+        const text = $('novelText').value.trim();
+        if (!text) {
+            showToast('请先输入或上传小说文本', true);
+            return;
+        }
+
+        // 清理文本
+        let cleaned = text.replace(/^\ufeff/, '');
+        cleaned = cleaned.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+        cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+
+        const sentences = splitSentences(cleaned);
+        if (sentences.length < 3) {
+            showToast('句子数量太少，请输入更多文本', true);
+            return;
+        }
+
+        const inputCount = parseInt($('inputSentences').value) || 2;
+        const outputCount = parseInt($('outputSentences').value) || 1;
+        const instruction = $('instruction').value || '请用作者的风格续写';
+        const shuffle = $('shuffle').checked;
+
+        let pairs = generatePairs(sentences, inputCount, outputCount);
+
+        if (pairs.length === 0) {
+            showToast('未能生成训练数据，请检查参数或文本', true);
+            return;
+        }
+
+        if (shuffle) {
+            // Fisher-Yates shuffle
+            for (let i = pairs.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [pairs[i], pairs[j]] = [pairs[j], pairs[i]];
+            }
+        }
+
+        // 存储供下载
+        window._csvData = { pairs, instruction };
+
+        // 显示统计
+        $('statChars').textContent = cleaned.length.toLocaleString();
+        $('statSentences').textContent = sentences.length.toLocaleString();
+        $('statPairs').textContent = pairs.length.toLocaleString();
+
+        // 预览表格（前10条）
+        const tbody = $('previewBody');
+        tbody.innerHTML = '';
+        const previewCount = Math.min(10, pairs.length);
+        for (let i = 0; i < previewCount; i++) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="col-inst">${escapeCSV(instruction)}</td>
+                <td class="col-in" title="${pairs[i].input.replace(/"/g, '&quot;')}">${escapeCSV(pairs[i].input)}</td>
+                <td class="col-out" title="${pairs[i].output.replace(/"/g, '&quot;')}">${escapeCSV(pairs[i].output)}</td>
+            `;
+            tbody.appendChild(tr);
+        }
+        $('previewNote').textContent = pairs.length > 10 ? `仅显示前 10 条，共 ${pairs.length} 条` : '';
+
+        // 显示结果区
+        $('resultSection').classList.add('show');
+        $('downloadBtn').style.display = 'inline-flex';
+
+        // 滚动到结果
+        setTimeout(() => {
+            $('resultSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+
+        showToast(`成功生成 ${pairs.length} 条训练数据`);
+    });
+
+    // 下载 CSV
+    $('downloadBtn').addEventListener('click', () => {
+        if (!window._csvData) return;
+        const { pairs, instruction } = window._csvData;
+
+        // 构建 CSV 内容（带 BOM 以支持 Excel 中文）
+        let csv = '\uFEFF';
+        csv += 'instruction,input,output\n';
+        for (const p of pairs) {
+            csv += `${escapeCSV(instruction)},${escapeCSV(p.input)},${escapeCSV(p.output)}\n`;
+        }
+
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'test_data.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+
+        showToast('CSV 文件已下载');
+    });
+</script>
+
+</body>
+</html>
